@@ -1,13 +1,14 @@
 // PROPERTIES:
 #define FOGGER_PIN 8
 #define MEASUREMENT_FREQUENCY 5      
-#define DHTPIN D2
+#define DHTPIN 4
 #define DHTTYPE DHT11
 #define TRANSMITION_TIMEOUT 5000
 
+#include "DHT.h"
 #include <ArduinoJson.h>
 
-//DHT dht(DHTPIN, DHTTYPE); 
+DHT dht(DHTPIN, DHTTYPE); 
 
 float typedHumidity, measuredHumidity, measuredTemperature;
 int timeInterval = 2000, workTime = 1000, workCounter = 0;
@@ -17,7 +18,6 @@ String measurmentMsg, jsonResponse="json";
 
 void setup() {
   initialize();
-  initializeHumidityMeasurement();
 }
 
 void loop() {
@@ -30,7 +30,7 @@ void loop() {
 void initialize(){
   Serial.begin(9600);
   pinMode(FOGGER_PIN, OUTPUT);
-  //dht.begin(); 
+  dht.begin(); 
 }
 
 void serialRead() {
@@ -40,7 +40,7 @@ void serialRead() {
 
     if(request[0] != 0x7E){         // '~'
       transmitionMsg = "ERROR: Wrong beginning of the transmition message";
-    } else if(request[2] != 0x7F){    // DEL key
+    } else if(request[2] != 0x7F){  // DEL key
       transmitionMsg = "ERROR: Wrong ending of the transmition message";
     } else {
       transmitionMsg = "OK: Transmition received succesfully";
@@ -62,10 +62,8 @@ void humidityMeasurement(){
   if(workCounter == MEASUREMENT_FREQUENCY){             // check if counter has achieved MEASUREMENT_FREQUENCY value
       workCounter = 0;                                  // zeroing the counter
       
-      /*measuredTemperature = dht.readTemperature();
-      measuredHumidity = dht.readHumidity();*/
-      measuredHumidity = 60;
-      measuredTemperature = 25;
+      measuredTemperature = dht.readTemperature();
+      measuredHumidity = dht.readHumidity();
     
       if (isnan(measuredTemperature) || isnan(measuredHumidity)) {
         measurmentMsg = "ERROR";                      
@@ -75,18 +73,6 @@ void humidityMeasurement(){
    }
 }
 
-void initializeHumidityMeasurement(){
-    /*measuredTemperature = dht.readTemperature();
-    measuredHumidity = dht.readHumidity();*/
-    measuredHumidity = 60;
-    measuredTemperature = 25;
-    
-    if (isnan(measuredTemperature) || isnan(measuredHumidity)) {
-      measurmentMsg = "ERROR";                      
-    } else {
-      measurmentMsg = "OK"; 
-    }
-}
 
 void setDelayAndWorkTime(){
   //timeInterval = 2000; 
