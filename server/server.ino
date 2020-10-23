@@ -14,13 +14,14 @@ WiFiServer server(50007);
  
 void setup() {
   initialize();
-
+  
   connectionStatus(false);
   
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {           // wait until connect
     delay(500); 
   }
+  
   connectionStatus(true);
   server.begin();
 }
@@ -32,26 +33,28 @@ void loop() {
   }
   
   String request = client.readStringUntil('\r');    // read client request 
+  request = fixRequest(request);
 
   if (incorrectValidation(request)) {
-    client.println("Pojebało cię ??");
+    client.println("400 - Bad Request");
     client.flush(); 
     return;
   }
 
-  message[1] = convertRetreivedValue(request);       // convert retrieve data and set it to send
+  message[1] = convertRetreivedValue(request);      // convert retrieve data and set it to send
 
   serialSend(message);                              // send param to controller
 
   unsigned long timestart = millis();
   while ((millis() - timestart) < SERIAL_PORT_TIMEOUT)
     if (Serial.available() > 0) {
-      client.println(Serial.read());                // send the response from controller to client
+      String controllerResponse = Serial.readStringUntil('\r');
+      client.println(controllerResponse);           // send the response from controller to client
       client.flush();                               // disconnect client
     }
     
   if ((millis() - timestart) >= SERIAL_PORT_TIMEOUT) {  // send info about timeout
-    client.println("SERIAL_PORT_TIMEOUT " + SERIAL_PORT_TIMEOUT);
+    client.println("SERIAL_PORT_TIMEOUT");
     client.flush();                                 // disconnect client
   }
 }
@@ -60,6 +63,16 @@ void initialize() {
   Serial.begin(9600);
   pinMode(PIN_LED_GREEN, OUTPUT);
   pinMode(PIN_LED_RED, OUTPUT);
+}
+
+String fixRequest(String str) {
+  if (str.length() == 3) {
+    String newStr = "";
+    newStr += str[0];
+    newStr += str[1];
+    return newStr;  
+  }
+  return str;
 }
 
 bool incorrectValidation(String valueStr) {
